@@ -50,6 +50,7 @@ def test_chat_completions():
         )
 
     res_df = client.chat_completions(input_df, request_fn)
+    print(res_df.columns)
     assert len(res_df.index) == len(input_df.index)
     assert set(res_df.columns) == set(input_df.columns).union(
         {"openai_reply", "api_error"}

@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional, Union
 
 import httpx
 from backoff import on_exception, expo
+from httpx import Timeout
 
 
 class PostRequest(object):
@@ -59,9 +60,10 @@ async def process_payloads(
     requests: List[PostRequest],
     max_concurrent_connections: int = 5,
     max_retries: int = 5,
+    timeout: Optional[Timeout] = None,
 ) -> List[Union[PostResult, BaseException]]:
     async with httpx.AsyncClient(
-        timeout=None, limits=httpx.Limits(max_connections=max_concurrent_connections)
+        timeout=timeout, limits=httpx.Limits(max_connections=max_concurrent_connections)
     ) as client:
         tasks = [
             post_request(client, endpoint, headers, request, max_retries)

@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import os
 from enum import Enum
@@ -10,11 +9,8 @@ from httpx import Timeout
 from pandas import DataFrame
 from pydantic import BaseModel
 
-from async_requests import process_payloads, PostRequest, PostResult
-from response import ResponseProcessor, DefaultChatResponseProcessor
-
-
-# see https://platform.openai.com/docs/api-reference/chat/create
+from rolebotics.async_requests import process_payloads, PostRequest, PostResult
+from rolebotics.response import ResponseProcessor, DefaultChatResponseProcessor
 
 
 class ModelType(Enum):
@@ -32,6 +28,7 @@ MODELS_CONFIG = {
 }
 
 
+# see https://platform.openai.com/docs/api-reference/chat/create
 class OpenAIParams(BaseModel):
     model: str = "gpt-3.5-turbo"
     # set either temperature or top_p
@@ -74,12 +71,15 @@ class ChatRequest(BaseModel):
 
 CHAT_MESSAGE_EXTRACTOR = DefaultChatResponseProcessor()
 
+DEFAULT_TIMEOUT = Timeout(3.0, read=20.0)
+DEFAULT_RETRIES = 5
+DEFAULT_MAX_CONNECTIONS = 8
+
 
 class OpenAIClient:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        default_chat_params: OpenAIParams = DEFAULT_CHAT_PARAMS,
     ):
         self._endpoint = f"https://api.openai.com/v1/chat/completions"
         api_key = api_key or os.environ["OPENAI_API_KEY"]
@@ -87,27 +87,6 @@ class OpenAIClient:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
         }
-        self._default_chat_params = default_chat_params
-        self._default_max_connections = 8
-        self._default_max_retries = 5
-        self._default_timeout = Timeout(3.0, read=20.0)
-
-    @staticmethod
-    def _from_json_response(
-        result: PostResult, config: ModelConfig
-    ) -> Union[str, List[str], BaseException]:
-        if not result.value:
-            return Exception("empty response")
-        try:
-            # json.loads(response)["choices"][0]["text"]
-            choices = json.loads(result.value)["choices"]
-            if config.type == ModelType.CHAT:
-                return [choices[i]["message"]["content"] for i in range(len(choices))]
-            else:
-                return [choices[i]["text"] for i in range(len(choices))]
-        except Exception as e:
-            logging.exception(f"choices extraction {e}")
-            return e
 
     @staticmethod
     def create_openai_body(params: OpenAIParams) -> Dict[str, Any]:
@@ -137,10 +116,12 @@ class OpenAIClient:
     def chat_completion(
         self,
         request: ChatRequest,
+        client_timeout: Timeout = DEFAULT_TIMEOUT,
+        retries: int = DEFAULT_RETRIES,
         return_raw_response: bool = False,
         response_processor: ResponseProcessor = CHAT_MESSAGE_EXTRACTOR,
     ) -> Union[str, List[str]]:
-        body = self.create_openai_body(request.params or self._default_chat_params)
+        body = self.create_openai_body(request.params or DEFAULT_CHAT_PARAMS)
         body["messages"] = [m.dict() for m in request.messages]
         if request.key:
             key = request.key
@@ -152,8 +133,9 @@ class OpenAIClient:
                 endpoint=self._endpoint,
                 headers=self._headers,
                 requests=[PostRequest(key=key, body=body)],
-                max_concurrent_connections=self._default_max_connections,
-                max_retries=self._default_max_retries,
+                max_concurrent_connections=1,
+                max_retries=retries,
+                timeout=client_timeout,
             )
         )[0]
         if response.error:
@@ -171,8 +153,9 @@ class OpenAIClient:
         df: DataFrame,
         request_fn: Callable[[pd.Series], ChatRequest],
         response_col: str = "openai_reply",
-        max_connections: Optional[int] = None,
-        max_retries: Optional[int] = None,
+        max_connections: int = DEFAULT_MAX_CONNECTIONS,
+        max_retries: int = DEFAULT_RETRIES,
+        client_timeout: Timeout = DEFAULT_TIMEOUT,
         return_raw_response: bool = False,
         response_processor: ResponseProcessor = CHAT_MESSAGE_EXTRACTOR,
     ) -> Optional[DataFrame]:
@@ -182,14 +165,13 @@ class OpenAIClient:
 
         def to_request(r: pd.Series) -> PostRequest:
             request = request_fn(r)
-            body = self.create_openai_body(request.params or self._default_chat_params)
-            key = request.key
+            body = self.create_openai_body(request.params or DEFAULT_CHAT_PARAMS)
             messages = ([] if not request.system else [request.system.dict()]) + [
                 m.dict() for m in request.messages
             ]
             body["messages"] = messages
-            body["user"] = ":".join([f"{k}-{v}" for k, v in key.items()])
-            return PostRequest(key=key, body=body)
+            body["user"] = ":".join([f"{k}-{v}" for k, v in request.key.items()])
+            return PostRequest(key=request.key, body=body)
 
         payloads = df.apply(lambda r: to_request(r), axis=1).values.tolist()
         responses = asyncio.run(
@@ -197,9 +179,9 @@ class OpenAIClient:
                 endpoint=self._endpoint,
                 headers=self._headers,
                 requests=payloads,
-                max_concurrent_connections=max_connections
-                or self._default_max_connections,
-                max_retries=max_retries or self._default_max_retries,
+                timeout=client_timeout,
+                max_concurrent_connections=max_connections,
+                max_retries=max_retries,
             )
         )
 
