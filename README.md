@@ -103,4 +103,5 @@ class ResponseProcessor(Generic[R], Callable[..., R], ABC):
         pass
 ```
 
-
+### Disclaimer
+This repository has no connection whatsoever to OpenAI.
