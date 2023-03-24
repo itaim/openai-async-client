@@ -1,92 +1,51 @@
 import asyncio
 import logging
 import os
-from enum import Enum
-from typing import List, Dict, Any, Optional, Callable, Union
+from typing import Dict, Any, Optional, Callable, Union
 
 import pandas as pd
 from httpx import Timeout
 from pandas import DataFrame
-from pydantic import BaseModel
 
 from openai_async_client.async_requests import process_payloads, PostRequest, PostResult
-from openai_async_client.response import ResponseProcessor, DefaultChatResponseProcessor
-
-
-class ModelType(Enum):
-    CHAT = "message"
-    TEXT = "text"
-
-
-class ModelConfig(BaseModel):
-    type: ModelType
-    encoding: str
-
-
-MODELS_CONFIG = {
-    "chat": ModelConfig(type=ModelType.CHAT, encoding="text-embedding-ada-002")
-}
-
-
-# see https://platform.openai.com/docs/api-reference/chat/create
-class OpenAIParams(BaseModel):
-    model: str = "gpt-3.5-turbo"
-    # set either temperature or top_p
-    temperature: Optional[float] = 0.0
-    top_p: Optional[float] = None
-    # defaults to inf
-    max_tokens: Optional[int] = None
-    # + increase prob of new topics
-    presence_penalty: float = 0.0
-    # + decrease prob of repetition
-    frequency_penalty: float = 0.0
-    logit_bias: Optional[Dict[int, int]] = None
-    user: Optional[str] = None
-    stream: bool = False
-    stop: Optional[Union[str, List[str]]]
-    user: Optional[str]
-    n: int = 1
-
-
-DEFAULT_CHAT_PARAMS = OpenAIParams(
-    temperature=0.5, max_tokens=None, presence_penalty=1.0, frequency_penalty=2.0
-)
-
-
-class Message(BaseModel):
-    role: str
-    content: str
-
-
-class SystemMessage(Message):
-    role = "system"
-
-
-class ChatRequest(BaseModel):
-    messages: List[Message]
-    key: Optional[Dict[str, Any]] = None
-    system: Optional[Message] = None
-    params: Optional[OpenAIParams] = None
-
-
-CHAT_MESSAGE_EXTRACTOR = DefaultChatResponseProcessor()
+from openai_async_client.model import EndpointConfig, TextCompletionRequest
+from openai_async_client.model import OpenAIParams, CompletionRequest, ChatCompletionRequest
+from openai_async_client.reader import Completion
 
 DEFAULT_TIMEOUT = Timeout(3.0, read=20.0)
 DEFAULT_RETRIES = 5
 DEFAULT_MAX_CONNECTIONS = 8
 
+EMPTY_RECORD = {
+    "openai_id": pd.NA,
+    "openai_created": pd.NA,
+    "openai_completion": pd.NA,
+    "openai_prompt_tokens": pd.NA,
+    "openai_completion_tokens": pd.NA,
+    "openai_total_tokens": pd.NA,
+    "api_error": pd.NA,
+}
 
-class OpenAIAsync:
+
+class AsyncCreate:
     def __init__(
             self,
             api_key: Optional[str] = None,
     ):
-        self._endpoint = f"https://api.openai.com/v1/chat/completions"
         api_key = api_key or os.environ["OPENAI_API_KEY"]
         self._headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
         }
+
+    @staticmethod
+    def get_endpoint_config(request) -> EndpointConfig:
+        if isinstance(request, ChatCompletionRequest):
+            return EndpointConfig.CHAT
+        elif isinstance(request, TextCompletionRequest):
+            return EndpointConfig.TEXT
+        else:
+            raise Exception(f'unknown request {request}')
 
     @staticmethod
     def create_openai_body(params: OpenAIParams) -> Dict[str, Any]:
@@ -113,24 +72,24 @@ class OpenAIAsync:
             )
         return open_ai_body
 
-    def chat_completion(
+    def completion(
             self,
-            request: ChatRequest,
+            request: CompletionRequest,
             client_timeout: Timeout = DEFAULT_TIMEOUT,
             retries: int = DEFAULT_RETRIES,
-            return_raw_response: bool = False,
-            response_processor: ResponseProcessor = CHAT_MESSAGE_EXTRACTOR,
-    ) -> Union[str, List[str]]:
-        body = self.create_openai_body(request.params or DEFAULT_CHAT_PARAMS)
-        body["messages"] = [m.dict() for m in request.messages]
+            return_raw_response: bool = False
+    ) -> Completion:
+        body = self.create_openai_body(request.params)
+        request.set_data(body)
         if request.key:
             key = request.key
             body["user"] = ":".join([f"{k}-{v}" for k, v in key.items()])
         else:
-            key = {"key": "chat"}
+            key = {"key": "completion"}
+        config = self.get_endpoint_config(request)
         response = asyncio.run(
             process_payloads(
-                endpoint=self._endpoint,
+                endpoint=config.endpoint,
                 headers=self._headers,
                 requests=[PostRequest(key=key, body=body)],
                 max_concurrent_connections=1,
@@ -140,24 +99,23 @@ class OpenAIAsync:
         )[0]
         if response.error:
             raise response.error
-        elif not return_raw_response and response_processor:
-            result = response_processor(response.value)
+        elif return_raw_response:
+            return response.value
+        else:
+            result = config.reader(response.value)
             if isinstance(result, BaseException):
                 raise result
             return result
-        else:
-            return response.value
 
-    def chat_completions(
+    def completions(
             self,
             df: DataFrame,
-            request_fn: Callable[[pd.Series], ChatRequest],
-            response_col: str = "openai_reply",
+            request_fn: Callable[[pd.Series], CompletionRequest],
+            config: EndpointConfig,
             max_connections: int = DEFAULT_MAX_CONNECTIONS,
             max_retries: int = DEFAULT_RETRIES,
             client_timeout: Timeout = DEFAULT_TIMEOUT,
-            return_raw_response: bool = False,
-            response_processor: ResponseProcessor = CHAT_MESSAGE_EXTRACTOR,
+            return_raw_response: bool = False
     ) -> Optional[DataFrame]:
         if len(df.index) == 0:
             logging.error(f"Empty input")
@@ -165,18 +123,15 @@ class OpenAIAsync:
 
         def to_request(r: pd.Series) -> PostRequest:
             request = request_fn(r)
-            body = self.create_openai_body(request.params or DEFAULT_CHAT_PARAMS)
-            messages = ([] if not request.system else [request.system.dict()]) + [
-                m.dict() for m in request.messages
-            ]
-            body["messages"] = messages
+            body = self.create_openai_body(request.params)
+            request.set_data(body)
             body["user"] = ":".join([f"{k}-{v}" for k, v in request.key.items()])
             return PostRequest(key=request.key, body=body)
 
         payloads = df.apply(lambda r: to_request(r), axis=1).values.tolist()
         responses = asyncio.run(
             process_payloads(
-                endpoint=self._endpoint,
+                endpoint=config.endpoint,
                 headers=self._headers,
                 requests=payloads,
                 timeout=client_timeout,
@@ -192,16 +147,24 @@ class OpenAIAsync:
                 return None
             record = response.key.copy()
             if response.error:
-                record[response_col] = pd.NA
+                if not return_raw_response:
+                    record.update(EMPTY_RECORD)
                 record["api_error"] = response.error.__repr__()
-
-            elif not return_raw_response and response_processor:
-                processed = response_processor(response.value)
-                if isinstance(processed, BaseException):
-                    record[response_col] = pd.NA
+            elif return_raw_response:
+                record['openai_completion'] = response.value
+                record['api_error'] = pd.NA
+            else:
+                completion = config.reader(response.value)
+                if isinstance(completion, BaseException):
+                    record.update(EMPTY_RECORD)
                     record["api_error"] = response.error.__repr__()
                 else:
-                    record[response_col] = processed
+                    record["openai_id"] = completion.id
+                    record["openai_created"] = completion.created
+                    record["openai_completion"] = completion.text
+                    record["openai_prompt_tokens"] = completion.usage.prompt_tokens
+                    record["openai_completion_tokens"] = completion.usage.completion_tokens
+                    record["openai_total_tokens"] = completion.usage.total_tokens
                     record["api_error"] = pd.NA
             return record
 

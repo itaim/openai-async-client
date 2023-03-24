@@ -1,8 +1,14 @@
-from .openai_client import (
-    OpenAIAsync,
-    OpenAIParams,
-    ChatRequest,
+from .model import (
     Message,
     SystemMessage,
-    ResponseProcessor,
+    DEFAULT_TEXT_PARAMS,
+    DEFAULT_CHAT_PARAMS
+)
+from .openai import (
+    AsyncCreate,
+    Completion,
+    OpenAIParams,
+    CompletionRequest,
+    ChatCompletionRequest,
+    TextCompletionRequest
 )
