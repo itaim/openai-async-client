@@ -78,8 +78,8 @@ DEFAULT_MAX_CONNECTIONS = 8
 
 class OpenAIAsync:
     def __init__(
-        self,
-        api_key: Optional[str] = None,
+            self,
+            api_key: Optional[str] = None,
     ):
         self._endpoint = f"https://api.openai.com/v1/chat/completions"
         api_key = api_key or os.environ["OPENAI_API_KEY"]
@@ -92,11 +92,11 @@ class OpenAIAsync:
     def create_openai_body(params: OpenAIParams) -> Dict[str, Any]:
         open_ai_body = {
             "model": params.model,
-            "n": params.n,
             "presence_penalty": params.presence_penalty,
             "frequency_penalty": params.frequency_penalty,
         }
-
+        if params.n > 0:
+            open_ai_body["n"] = params.n
         if params.max_tokens:
             open_ai_body["max_tokens"] = params.max_tokens
         if params.stop:
@@ -114,12 +114,12 @@ class OpenAIAsync:
         return open_ai_body
 
     def chat_completion(
-        self,
-        request: ChatRequest,
-        client_timeout: Timeout = DEFAULT_TIMEOUT,
-        retries: int = DEFAULT_RETRIES,
-        return_raw_response: bool = False,
-        response_processor: ResponseProcessor = CHAT_MESSAGE_EXTRACTOR,
+            self,
+            request: ChatRequest,
+            client_timeout: Timeout = DEFAULT_TIMEOUT,
+            retries: int = DEFAULT_RETRIES,
+            return_raw_response: bool = False,
+            response_processor: ResponseProcessor = CHAT_MESSAGE_EXTRACTOR,
     ) -> Union[str, List[str]]:
         body = self.create_openai_body(request.params or DEFAULT_CHAT_PARAMS)
         body["messages"] = [m.dict() for m in request.messages]
@@ -149,15 +149,15 @@ class OpenAIAsync:
             return response.value
 
     def chat_completions(
-        self,
-        df: DataFrame,
-        request_fn: Callable[[pd.Series], ChatRequest],
-        response_col: str = "openai_reply",
-        max_connections: int = DEFAULT_MAX_CONNECTIONS,
-        max_retries: int = DEFAULT_RETRIES,
-        client_timeout: Timeout = DEFAULT_TIMEOUT,
-        return_raw_response: bool = False,
-        response_processor: ResponseProcessor = CHAT_MESSAGE_EXTRACTOR,
+            self,
+            df: DataFrame,
+            request_fn: Callable[[pd.Series], ChatRequest],
+            response_col: str = "openai_reply",
+            max_connections: int = DEFAULT_MAX_CONNECTIONS,
+            max_retries: int = DEFAULT_RETRIES,
+            client_timeout: Timeout = DEFAULT_TIMEOUT,
+            return_raw_response: bool = False,
+            response_processor: ResponseProcessor = CHAT_MESSAGE_EXTRACTOR,
     ) -> Optional[DataFrame]:
         if len(df.index) == 0:
             logging.error(f"Empty input")
@@ -186,7 +186,7 @@ class OpenAIAsync:
         )
 
         def to_record(
-            response: Union[PostResult, BaseException]
+                response: Union[PostResult, BaseException]
         ) -> Optional[Dict[str, Any]]:
             if isinstance(response, BaseException):
                 return None

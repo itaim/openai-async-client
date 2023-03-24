@@ -3,7 +3,7 @@ import uuid
 import pandas as pd
 from dotenv import load_dotenv
 
-from openai_async_client import OpenAIAsync, ChatRequest, Message, SystemMessage
+from openai_async_client import OpenAIAsync, ChatRequest, Message, SystemMessage, OpenAIParams
 
 load_dotenv()
 
@@ -29,7 +29,7 @@ def test_chat_completion():
     assert len(response) > 100
 
 
-def test_chat_completions():
+def do_chat_completions(n: int):
     records = [
         {"user_id": i, "book_id": str(uuid.uuid4())[:6], "book_name": s}
         for i, s in enumerate(TEST_INPUTS)
@@ -47,6 +47,7 @@ def test_chat_completions():
             key=key,
             messages=[message],
             system=SystemMessage(content="Assistant is providing book reviews"),
+            params=OpenAIParams(n=n)
         )
 
     res_df = client.chat_completions(input_df, request_fn)
@@ -55,4 +56,16 @@ def test_chat_completions():
     assert set(res_df.columns) == set(input_df.columns).union(
         {"openai_reply", "api_error"}
     )
-    # res_df.to_csv(f"data/test_res.csv", index=False)
+    return res_df
+
+
+def test_chat_completions_single_choice():
+    n = 1
+    res_df = do_chat_completions(n=n)
+    res_df.to_csv(f'data/chat_completions_{n}', index=False)
+
+
+def test_chat_completions_multi_choice():
+    n = 3
+    res_df = do_chat_completions(n=n)
+    res_df.to_csv(f'data/chat_completions_{n}.csv', index=False)

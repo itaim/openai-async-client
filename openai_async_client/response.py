@@ -15,17 +15,13 @@ class ResponseProcessor(Generic[R], Callable[..., R], ABC):
 
 class DefaultChatResponseProcessor(ResponseProcessor[str]):
     def __call__(
-        self, body: str, *args: Any, **kwargs: Any
+            self, body: str, *args: Any, **kwargs: Any
     ) -> Union[str, List[str], BaseException]:
         if not body:
             return Exception("empty response")
         try:
             choices = json.loads(body)["choices"]
-            ret_val = [choices[i]["message"]["content"] for i in range(len(choices))]
-            if isinstance(ret_val, list):
-                return ret_val[0]
-            else:
-                return ret_val
+            return [choices[i]["message"]["content"] for i in range(len(choices))]
         except Exception as e:
             logging.exception(f"choices extraction {e}")
             return e
