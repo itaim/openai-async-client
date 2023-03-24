@@ -2,7 +2,7 @@
 
 ## Quick Install
 
-`pip install openai-httpx-client`
+`pip install openai-async-client`
 
 ## 🤔 What is this?
 
