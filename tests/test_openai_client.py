@@ -3,7 +3,7 @@ import uuid
 import pandas as pd
 from dotenv import load_dotenv
 
-from rolebotics.openai_client import OpenAIClient, ChatRequest, Message, SystemMessage
+from openai_async import OpenAIAsync, ChatRequest, Message, SystemMessage
 
 load_dotenv()
 
@@ -17,7 +17,7 @@ TEST_INPUTS = [
 
 
 def test_chat_completion():
-    client = OpenAIClient()
+    client = OpenAIAsync()
     messages = [
         Message(
             role="user",
@@ -35,7 +35,7 @@ def test_chat_completions():
         for i, s in enumerate(TEST_INPUTS)
     ]
     input_df = pd.DataFrame.from_records(records)
-    client = OpenAIClient()
+    client = OpenAIAsync()
 
     def request_fn(r: pd.Series) -> ChatRequest:
         message = Message(

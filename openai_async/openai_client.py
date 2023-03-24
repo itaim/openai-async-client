@@ -9,8 +9,8 @@ from httpx import Timeout
 from pandas import DataFrame
 from pydantic import BaseModel
 
-from rolebotics.async_requests import process_payloads, PostRequest, PostResult
-from rolebotics.response import ResponseProcessor, DefaultChatResponseProcessor
+from openai_async.async_requests import process_payloads, PostRequest, PostResult
+from openai_async.response import ResponseProcessor, DefaultChatResponseProcessor
 
 
 class ModelType(Enum):
@@ -76,7 +76,7 @@ DEFAULT_RETRIES = 5
 DEFAULT_MAX_CONNECTIONS = 8
 
 
-class OpenAIClient:
+class OpenAIAsync:
     def __init__(
         self,
         api_key: Optional[str] = None,

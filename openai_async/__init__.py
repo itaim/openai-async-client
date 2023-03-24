@@ -1,5 +1,5 @@
 from .openai_client import (
-    OpenAIClient,
+    OpenAIAsync,
     OpenAIParams,
     ChatRequest,
     Message,
