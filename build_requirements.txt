@@ -1,0 +1,4 @@
+setuptools>=63.0.0
+pytest
+black
+python-dotenv>=0.10.3
