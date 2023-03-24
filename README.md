@@ -62,13 +62,6 @@ input_df = pd.DataFrame.from_records(records)
 
 client = OpenAIAsync(api_key=os.environ['OPENAI_API_KEY'])
 
-messages = [
-    Message(
-        role="user",
-        content=f"Hello ChatGPT, Give a brief overview of the book Frankenstein by Mary Shelley.",
-    )
-]
-
 [//]: # (Define a mapping function from row to prompt)
 def my_prompt_fn(r: pd.Series) -> ChatRequest:
     message = Message(
