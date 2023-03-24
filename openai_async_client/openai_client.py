@@ -9,8 +9,8 @@ from httpx import Timeout
 from pandas import DataFrame
 from pydantic import BaseModel
 
-from openai_async.async_requests import process_payloads, PostRequest, PostResult
-from openai_async.response import ResponseProcessor, DefaultChatResponseProcessor
+from openai_async_client.async_requests import process_payloads, PostRequest, PostResult
+from openai_async_client.response import ResponseProcessor, DefaultChatResponseProcessor
 
 
 class ModelType(Enum):

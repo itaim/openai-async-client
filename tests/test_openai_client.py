@@ -3,7 +3,7 @@ import uuid
 import pandas as pd
 from dotenv import load_dotenv
 
-from openai_async import OpenAIAsync, ChatRequest, Message, SystemMessage
+from openai_async_client import OpenAIAsync, ChatRequest, Message, SystemMessage
 
 load_dotenv()
 

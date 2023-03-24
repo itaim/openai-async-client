@@ -35,7 +35,7 @@ response = client.chat_completion(request=ChatRequest(messages=messages),client_
 
 ````
 
-Example of concurrent processing a DataFrame for chat completions with 8 concurrent connections.
+Example of concurrent processing a DataFrame for chat completions with 4 concurrent connections.
 
  ````
 import os

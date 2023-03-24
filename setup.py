@@ -13,7 +13,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="openai-httpx-client",
+    name="openai-async-client",
     version=read_version(),
     author="Itai Marks",
     author_email="itai.marks@gmail.com",
