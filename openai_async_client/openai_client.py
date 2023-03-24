@@ -95,7 +95,7 @@ class OpenAIAsync:
             "presence_penalty": params.presence_penalty,
             "frequency_penalty": params.frequency_penalty,
         }
-        if params.n > 0:
+        if params.n > 1:
             open_ai_body["n"] = params.n
         if params.max_tokens:
             open_ai_body["max_tokens"] = params.max_tokens

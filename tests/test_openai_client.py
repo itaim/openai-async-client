@@ -62,7 +62,7 @@ def do_chat_completions(n: int):
 def test_chat_completions_single_choice():
     n = 1
     res_df = do_chat_completions(n=n)
-    res_df.to_csv(f'data/chat_completions_{n}', index=False)
+    res_df.to_csv(f'data/chat_completions_{n}.csv', index=False)
 
 
 def test_chat_completions_multi_choice():

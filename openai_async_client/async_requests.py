@@ -15,29 +15,22 @@ class PostRequest(object):
 
 class PostResult(object):
     def __init__(
-        self,
-        key: Dict[str, Any],
-        value=Optional[str],
-        error: Optional[BaseException] = None,
+            self,
+            key: Dict[str, Any],
+            value=Optional[str],
+            error: Optional[BaseException] = None,
     ):
         self.key = key
         self.value = value
         self.error = error
 
 
-class HttpxErrorResponse(Exception):
-    def __init__(self, response: httpx.Response):
-        super().__init__(response.text)
-        self.status_code = response.status_code
-        self.response = response
-
-
 async def post_request(
-    client: httpx.AsyncClient,
-    url: str,
-    headers: Dict[str, str],
-    request: PostRequest,
-    max_retries: int = 5,
+        client: httpx.AsyncClient,
+        url: str,
+        headers: Dict[str, str],
+        request: PostRequest,
+        max_retries: int = 5,
 ) -> PostResult:
     @on_exception(expo, httpx.RequestError, max_tries=max_retries)
     async def make_request(request: PostRequest) -> PostResult:
@@ -55,15 +48,15 @@ async def post_request(
 
 
 async def process_payloads(
-    endpoint: str,
-    headers: Dict[str, str],
-    requests: List[PostRequest],
-    max_concurrent_connections: int = 5,
-    max_retries: int = 5,
-    timeout: Optional[Timeout] = None,
+        endpoint: str,
+        headers: Dict[str, str],
+        requests: List[PostRequest],
+        max_concurrent_connections: int = 5,
+        max_retries: int = 5,
+        timeout: Optional[Timeout] = None,
 ) -> List[Union[PostResult, BaseException]]:
     async with httpx.AsyncClient(
-        timeout=timeout, limits=httpx.Limits(max_connections=max_concurrent_connections)
+            timeout=timeout, limits=httpx.Limits(max_connections=max_concurrent_connections)
     ) as client:
         tasks = [
             post_request(client, endpoint, headers, request, max_retries)

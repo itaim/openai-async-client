@@ -21,7 +21,10 @@ class DefaultChatResponseProcessor(ResponseProcessor[str]):
             return Exception("empty response")
         try:
             choices = json.loads(body)["choices"]
-            return [choices[i]["message"]["content"] for i in range(len(choices))]
+            if len(choices) == 1:
+                return choices[0]["message"]["content"]
+            else:
+                return [choices[1]["message"]["content"] for i in range(len(choices))]
         except Exception as e:
             logging.exception(f"choices extraction {e}")
             return e
