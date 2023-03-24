@@ -20,9 +20,9 @@ retries.
 ````
 import os
 from httpx import Timeout
-from rolebotics import OpenAIClient, Message, ChatRequest, SystemMessage
+from openai_async_client import OpenAIAsync, ChatRequest, Message, SystemMessage
 
-client = OpenAIClient(api_key=os.environ['OPENAI_API_KEY'])
+client = OpenAIAsync(api_key=os.environ['OPENAI_API_KEY'])
 
 messages = [
     Message(
@@ -40,7 +40,7 @@ Example of concurrent processing a DataFrame for chat completions with 4 concurr
  ````
 import os
 from httpx import Timeout
-from rolebotics import OpenAIClient, Message, ChatRequest, SystemMessage
+from openai_async_client import OpenAIAsync, ChatRequest, Message, SystemMessage
 import uuid
 import pandas as pd
 
@@ -60,7 +60,7 @@ records = [
 input_df = pd.DataFrame.from_records(records)
 
 
-client = OpenAIClient(api_key=os.environ['OPENAI_API_KEY'])
+client = OpenAIAsync(api_key=os.environ['OPENAI_API_KEY'])
 
 messages = [
     Message(
