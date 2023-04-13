@@ -9,7 +9,11 @@ from pandas import DataFrame
 
 from openai_async_client.async_requests import process_payloads, PostRequest, PostResult
 from openai_async_client.model import EndpointConfig, TextCompletionRequest
-from openai_async_client.model import OpenAIParams, CompletionRequest, ChatCompletionRequest
+from openai_async_client.model import (
+    OpenAIParams,
+    CompletionRequest,
+    ChatCompletionRequest,
+)
 from openai_async_client.reader import Completion
 
 DEFAULT_TIMEOUT = Timeout(3.0, read=20.0)
@@ -29,8 +33,8 @@ EMPTY_RECORD = {
 
 class AsyncCreate:
     def __init__(
-            self,
-            api_key: Optional[str] = None,
+        self,
+        api_key: Optional[str] = None,
     ):
         api_key = api_key or os.environ["OPENAI_API_KEY"]
         self._headers = {
@@ -45,7 +49,7 @@ class AsyncCreate:
         elif isinstance(request, TextCompletionRequest):
             return EndpointConfig.TEXT
         else:
-            raise Exception(f'unknown request {request}')
+            raise Exception(f"unknown request {request}")
 
     @staticmethod
     def create_openai_body(params: OpenAIParams) -> Dict[str, Any]:
@@ -73,11 +77,11 @@ class AsyncCreate:
         return open_ai_body
 
     def completion(
-            self,
-            request: CompletionRequest,
-            client_timeout: Timeout = DEFAULT_TIMEOUT,
-            retries: int = DEFAULT_RETRIES,
-            return_raw_response: bool = False
+        self,
+        request: CompletionRequest,
+        client_timeout: Timeout = DEFAULT_TIMEOUT,
+        retries: int = DEFAULT_RETRIES,
+        return_raw_response: bool = False,
     ) -> Completion:
         body = self.create_openai_body(request.params)
         request.set_data(body)
@@ -108,14 +112,14 @@ class AsyncCreate:
             return result
 
     def completions(
-            self,
-            df: DataFrame,
-            request_fn: Callable[[pd.Series], CompletionRequest],
-            config: EndpointConfig,
-            max_connections: int = DEFAULT_MAX_CONNECTIONS,
-            max_retries: int = DEFAULT_RETRIES,
-            client_timeout: Timeout = DEFAULT_TIMEOUT,
-            return_raw_response: bool = False
+        self,
+        df: DataFrame,
+        request_fn: Callable[[pd.Series], CompletionRequest],
+        config: EndpointConfig,
+        max_connections: int = DEFAULT_MAX_CONNECTIONS,
+        max_retries: int = DEFAULT_RETRIES,
+        client_timeout: Timeout = DEFAULT_TIMEOUT,
+        return_raw_response: bool = False,
     ) -> Optional[DataFrame]:
         if len(df.index) == 0:
             logging.error(f"Empty input")
@@ -141,7 +145,7 @@ class AsyncCreate:
         )
 
         def to_record(
-                response: Union[PostResult, BaseException]
+            response: Union[PostResult, BaseException]
         ) -> Optional[Dict[str, Any]]:
             if isinstance(response, BaseException):
                 return None
@@ -151,8 +155,8 @@ class AsyncCreate:
                     record.update(EMPTY_RECORD)
                 record["api_error"] = response.error.__repr__()
             elif return_raw_response:
-                record['openai_completion'] = response.value
-                record['api_error'] = pd.NA
+                record["openai_completion"] = response.value
+                record["api_error"] = pd.NA
             else:
                 completion = config.reader(response.value)
                 if isinstance(completion, BaseException):
@@ -163,7 +167,9 @@ class AsyncCreate:
                     record["openai_created"] = completion.created
                     record["openai_completion"] = completion.text
                     record["openai_prompt_tokens"] = completion.usage.prompt_tokens
-                    record["openai_completion_tokens"] = completion.usage.completion_tokens
+                    record[
+                        "openai_completion_tokens"
+                    ] = completion.usage.completion_tokens
                     record["openai_total_tokens"] = completion.usage.total_tokens
                     record["api_error"] = pd.NA
             return record

@@ -12,6 +12,11 @@ Support for client side timeouts with retry and backoff for completions.
 
 Support for concurrent processing with pandas DataFrames.
 
+## Important Disclaimer:
+This client is specifically designed to be used in a non-asyncio Python process to help accelerate workload processing. Internally, the client utilizes the ```asyncio.run()``` function to manage the event loop.
+
+Please note that if you're already using async/await in your code, this client may not function properly without modifications. We encourage you to fork the repository and make any necessary changes to fit your specific use case with asyncio. We appreciate any contributions and feedback to improve the compatibility of this client with various asyncio implementations.
+
 ##
 
 ### Chat Completion
@@ -100,4 +105,4 @@ result_df = client.chat_completions(df=input_df, request_fn=chat_prompt_fn,max_c
 
 
 ### Disclaimer
-This repository has no connection to OpenAI.
+This repository is not affiliated with OpenAI.

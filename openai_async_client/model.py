@@ -5,11 +5,16 @@ from typing import List, Dict, Any, Optional, Union, Generic, TypeVar
 from pydantic import BaseModel
 from pydantic.generics import GenericModel
 
-from openai_async_client.reader import TextCompletionReader, ChatCompletionReader, CompletionReader
+from openai_async_client.reader import (
+    TextCompletionReader,
+    ChatCompletionReader,
+    CompletionReader,
+)
 
 
 # see https://platform.openai.com/docs/api-reference/completions/create
 # see https://platform.openai.com/docs/api-reference/chat/create
+
 
 class OpenAIParams(BaseModel):
     model: str
@@ -31,11 +36,19 @@ class OpenAIParams(BaseModel):
 
 
 DEFAULT_TEXT_PARAMS = OpenAIParams(
-    model='text-davinci-003', temperature=0.5, max_tokens=1024, presence_penalty=1.0, frequency_penalty=2.0
+    model="text-davinci-003",
+    temperature=0.5,
+    max_tokens=1024,
+    presence_penalty=1.0,
+    frequency_penalty=2.0,
 )
 
 DEFAULT_CHAT_PARAMS = OpenAIParams(
-    model="gpt-3.5-turbo", temperature=0.5, max_tokens=None, presence_penalty=1.0, frequency_penalty=2.0
+    model="gpt-3.5-turbo",
+    temperature=0.5,
+    max_tokens=None,
+    presence_penalty=1.0,
+    frequency_penalty=2.0,
 )
 
 
@@ -71,7 +84,12 @@ class CompletionRequest(GenericModel, Generic[P]):
 
 
 class TextCompletionRequest(CompletionRequest[str]):
-    def __init__(self, prompt: str, key: Optional[Dict[str, Any]] = None, params: Optional[OpenAIParams] = None):
+    def __init__(
+        self,
+        prompt: str,
+        key: Optional[Dict[str, Any]] = None,
+        params: Optional[OpenAIParams] = None,
+    ):
         super().__init__(prompt=prompt, key=key, params=params or DEFAULT_TEXT_PARAMS)
 
     def set_data(self, body):
@@ -81,8 +99,13 @@ class TextCompletionRequest(CompletionRequest[str]):
 class ChatCompletionRequest(CompletionRequest[List[Message]]):
     system: Optional[Message] = None
 
-    def __init__(self, prompt: List[Message], system: Optional[Message] = None, key: Optional[Dict[str, Any]] = None,
-                 params: Optional[OpenAIParams] = None):
+    def __init__(
+        self,
+        prompt: List[Message],
+        system: Optional[Message] = None,
+        key: Optional[Dict[str, Any]] = None,
+        params: Optional[OpenAIParams] = None,
+    ):
         super().__init__(prompt=prompt, key=key, params=params or DEFAULT_CHAT_PARAMS)
         self.system = system
 

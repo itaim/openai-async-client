@@ -4,7 +4,13 @@ from typing import Callable
 import pandas as pd
 from dotenv import load_dotenv
 
-from openai_async_client import AsyncCreate, Message, ChatCompletionRequest, SystemMessage, OpenAIParams
+from openai_async_client import (
+    AsyncCreate,
+    Message,
+    ChatCompletionRequest,
+    SystemMessage,
+    OpenAIParams,
+)
 from openai_async_client.model import TextCompletionRequest, EndpointConfig
 from openai_async_client.openai import EMPTY_RECORD
 
@@ -35,7 +41,10 @@ def test_chat_completion():
 def test_text_completion():
     create = AsyncCreate()
     response = create.completion(
-        TextCompletionRequest(prompt=f"Hello ChatGPT, Give a brief overview of the book {TEST_INPUTS[1]}."))
+        TextCompletionRequest(
+            prompt=f"Hello ChatGPT, Give a brief overview of the book {TEST_INPUTS[1]}."
+        )
+    )
     print(f"\n{response}")
     assert len(response.text) > 100
 
@@ -51,7 +60,7 @@ def my_chat_prompt_fn(n: int):
             key=key,
             prompt=[message],
             system=SystemMessage(content="Assistant is providing book reviews"),
-            params=OpenAIParams(model="gpt-3.5-turbo", n=n)
+            params=OpenAIParams(model="gpt-3.5-turbo", n=n),
         )
 
     return chat_prompt_fn
@@ -76,13 +85,13 @@ def do_completions(prompt_fn: Callable, config: EndpointConfig):
 def test_chat_completions_single_choice():
     n = 1
     res_df = do_completions(my_chat_prompt_fn(n), EndpointConfig.CHAT)
-    res_df.to_csv(f'data/chat_completions_{n}.csv', index=False)
+    res_df.to_csv(f"data/chat_completions_{n}.csv", index=False)
 
 
 def test_chat_completions_multi_choice():
     n = 3
     res_df = do_completions(my_chat_prompt_fn(n), EndpointConfig.CHAT)
-    res_df.to_csv(f'data/chat_completions_{n}.csv', index=False)
+    res_df.to_csv(f"data/chat_completions_{n}.csv", index=False)
 
 
 def my_text_prompt_fn(n: int):
@@ -91,7 +100,7 @@ def my_text_prompt_fn(n: int):
         return TextCompletionRequest(
             key=key,
             prompt=f"Hello ChatGPT, Give a brief overview of the book {r.book_name}.",
-            params=OpenAIParams(model='text-davinci-003', n=n)
+            params=OpenAIParams(model="text-davinci-003", n=n),
         )
 
     return text_prompt_fn
@@ -100,10 +109,10 @@ def my_text_prompt_fn(n: int):
 def test_text_completions_single_choice():
     n = 1
     res_df = do_completions(my_text_prompt_fn(n), EndpointConfig.CHAT)
-    res_df.to_csv(f'data/text_completions_{n}.csv', index=False)
+    res_df.to_csv(f"data/text_completions_{n}.csv", index=False)
 
 
 def test_text_completions_multi_choice():
     n = 3
     res_df = do_completions(my_text_prompt_fn(n), EndpointConfig.CHAT)
-    res_df.to_csv(f'data/text_completions_{n}.csv', index=False)
+    res_df.to_csv(f"data/text_completions_{n}.csv", index=False)
